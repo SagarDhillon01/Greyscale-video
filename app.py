@@ -31,7 +31,7 @@ def get_video_size(uploaded_file) -> int:
 def premium_message() -> str:
     return (
         f"This video exceeds the free {MAX_VIDEO_SIZE_MB} MB limit. "
-        "Upgrade to the premium membership for ₹60 for 1 year to convert larger files."
+        "For premium subscriptions, unlimited uploads and file size are available for Rs 60 for 1 month."
     )
 
 
@@ -51,7 +51,7 @@ def index():
         uploaded_file = request.files["media"]
         mime_type = uploaded_file.mimetype or ""
         file_size = get_video_size(uploaded_file)
-        if file_size > MAX_VIDEO_SIZE_BYTES:
+        if mime_type.startswith("video/") and file_size > MAX_VIDEO_SIZE_BYTES:
             flash(premium_message())
             return redirect(request.url)
 
