@@ -53,9 +53,7 @@ Output:
 
 ## 4. Live link
 
-Live demo 1: https://grayscale-video-app.onrender.com/
-
-Live demo 2: https://greyscale-video-2.onrender.com/
+Live demo 1: https://greyscale-video-2.onrender.com/
 
 ## 5. Screenshot of the Interface
 
