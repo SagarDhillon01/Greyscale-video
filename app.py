@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 
 import cv2
+import numpy as np
 from flask import Flask, flash, redirect, render_template, request, send_file
 from werkzeug.exceptions import RequestEntityTooLarge
 
@@ -43,52 +44,67 @@ def handle_too_large(_):
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        if "video" not in request.files or request.files["video"].filename == "":
-            flash("Please choose a video file.")
+        if "media" not in request.files or request.files["media"].filename == "":
+            flash("Please choose a file.")
             return redirect(request.url)
 
-        uploaded_file = request.files["video"]
-        if not uploaded_file.mimetype.startswith("video/"):
-            flash("Please upload a valid video file, not an image.")
-            return redirect(request.url)
-
+        uploaded_file = request.files["media"]
+        mime_type = uploaded_file.mimetype or ""
         file_size = get_video_size(uploaded_file)
         if file_size > MAX_VIDEO_SIZE_BYTES:
             flash(premium_message())
             return redirect(request.url)
 
-        file_ext = Path(uploaded_file.filename).suffix.lower() or ".mp4"
+        file_ext = Path(uploaded_file.filename).suffix.lower() or ".jpg"
         input_path = UPLOAD_DIR / f"{uuid.uuid4().hex}{file_ext}"
-        output_path = UPLOAD_DIR / f"{input_path.stem}_gray.mp4"
-
         uploaded_file.save(input_path)
 
-        cap = cv2.VideoCapture(str(input_path))
-        if not cap.isOpened():
-            flash("Could not open the uploaded video.")
-            return redirect(request.url)
+        if mime_type.startswith("video/"):
+            output_path = UPLOAD_DIR / f"{input_path.stem}_gray.mp4"
+            cap = cv2.VideoCapture(str(input_path))
+            if not cap.isOpened():
+                flash("Could not open the uploaded video.")
+                return redirect(request.url)
 
-        fps = cap.get(cv2.CAP_PROP_FPS) or 24
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS) or 24
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
-        if not out.isOpened():
-            flash("Could not create the output video.")
-            return redirect(request.url)
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+            if not out.isOpened():
+                flash("Could not create the output video.")
+                return redirect(request.url)
 
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                break
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            out.write(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR))
+            while True:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                out.write(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR))
 
-        cap.release()
-        out.release()
+            cap.release()
+            out.release()
+            return send_file(output_path, as_attachment=True, download_name=output_path.name)
 
-        return send_file(output_path, as_attachment=True, download_name=output_path.name)
+        if mime_type.startswith("image/") or file_ext in {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"}:
+            image = cv2.imread(str(input_path), cv2.IMREAD_COLOR)
+            if image is None:
+                flash("Could not open the uploaded image.")
+                return redirect(request.url)
+
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            output_path = UPLOAD_DIR / f"{input_path.stem}_gray.jpg"
+            success, encoded = cv2.imencode(".jpg", gray_image)
+            if not success:
+                flash("Could not create the grayscale image.")
+                return redirect(request.url)
+
+            output_path.write_bytes(encoded.tobytes())
+            return send_file(output_path, as_attachment=True, download_name=output_path.name)
+
+        flash("Please upload a valid image or video file.")
+        return redirect(request.url)
 
     return render_template("index.html", max_video_size_mb=MAX_VIDEO_SIZE_MB)
 
