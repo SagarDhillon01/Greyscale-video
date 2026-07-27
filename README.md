@@ -2,7 +2,38 @@
 
 ## 1. Methodology
 
-This project uses Python and OpenCV to convert uploaded media into grayscale. The application accepts both images and videos, processes them using computer vision techniques, and allows users to download the grayscale result instantly.
+This project follows a very simple idea:
+
+1. The user uploads a photo or video.
+2. The app checks the file size.
+3. If the file is within the free limit, the app starts processing it.
+4. The app converts the media into grayscale.
+5. The final grayscale file is downloaded by the user.
+
+### Simple Flowchart
+
+```text
+Start
+  ↓
+User uploads image or video
+  ↓
+Check file size
+  ↓
+Is file bigger than 60 MB?
+  ├─ Yes → Show premium message → Stop
+  └─ No  → Convert to grayscale
+              ↓
+         Download result
+              ↓
+End
+```
+
+### Easy Explanation
+
+- A photo or video is the input.
+- The app uses OpenCV to change the colors into shades of gray.
+- The output is a black-and-white-style version of the original file.
+- The whole process is shown through a simple web page so even a beginner can understand it.
 
 ## 2. Description
 
